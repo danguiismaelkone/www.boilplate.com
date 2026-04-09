@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Handlers for filesystem commands: MKDIR, CREATE, DELETE, RMDIR, COPY, MOVE
+# Handlers for MKDIR, CREATE, DELETE, RMDIR, COPY, MOVE
 
 handle_mkdir() {
     local dir="$1"
@@ -20,7 +20,11 @@ handle_create() {
         die "CREATE: missing file argument"
     fi
     if [[ "$DRY_RUN" == true ]]; then
-        dry_run_echo "mkdir -p $(dirname "$file") && touch $file"
+        dry_run_echo "mkdir -p $(dirname "$file") && touch $file (if missing)"
+        return 0
+    fi
+    if [[ -f "$file" ]]; then
+        log_info "📄 File already exists, skipping: $file"
         return 0
     fi
     mkdir -p "$(dirname "$file")" || die "Failed to create parent directory for: $file"
@@ -63,7 +67,11 @@ handle_copy() {
     local src="${ARGS[0]}"
     local dest="${ARGS[1]}"
     if [[ "$DRY_RUN" == true ]]; then
-        dry_run_echo "cp -R $src $dest"
+        dry_run_echo "cp -R $src $dest (skip if dest exists)"
+        return 0
+    fi
+    if [[ -e "$dest" ]]; then
+        log_info "📋 Destination already exists, skipping copy: $dest"
         return 0
     fi
     cp -R "$src" "$dest" || die "Copy failed: $src → $dest"

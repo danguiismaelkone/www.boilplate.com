@@ -18,3 +18,34 @@
 {"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/utils/hash.ts"}
 {"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/config/env.ts"}
 {"timestamp":"2026-04-09 03:42:01","level":"INFO","message":"Done executing instructions!"}
+{"timestamp":"2026-04-09 03:47:56","level":"WARN","message":"timeout command not found - running EXEC commands without timeout protection"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"Executing instructions from instructions.txt"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📁 Created directory: src"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📁 Created directory: src/controllers"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📁 Created directory: src/services"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📁 Created directory: src/models"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📁 Created directory: src/routes"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📁 Created directory: src/middlewares"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📁 Created directory: src/utils"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📁 Created directory: src/config"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/app.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/server.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/controllers/auth.controller.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/services/auth.service.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/models/user.model.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/routes/auth.routes.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/middlewares/auth.middleware.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/utils/hash.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"📄 File already exists, skipping: src/config/env.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: src/app.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: src/server.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: src/models/user.model.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: src/utils/hash.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: src/services/auth.service.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: src/controllers/auth.controller.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: src/middlewares/auth.middleware.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: src/routes/auth.routes.ts"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: .env"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: .env.example"}
+{"timestamp":"2026-04-09 03:47:56","level":"INFO","message":"✍️ Wrote file: tsconfig.json"}
+{"timestamp":"2026-04-09 03:48:03","level":"INFO","message":"Done executing instructions!"}

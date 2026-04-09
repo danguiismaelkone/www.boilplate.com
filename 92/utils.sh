@@ -30,7 +30,7 @@ log_message() {
     local formatted="[$timestamp] [$level] $msg"
 
     if [[ "$LOG_JSON" == "true" ]]; then
-        # Simple JSON escaping (jq not required for basic messages)
+        # Simple JSON escaping
         local json_msg=$(printf '%s' "$msg" | sed 's/"/\\"/g')
         formatted="{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$json_msg\"}"
     fi
@@ -68,6 +68,7 @@ require_command() {
     command -v "$1" >/dev/null 2>&1 || die "$1 is required but not installed."
 }
 
+# Portable sed -i (GNU vs BSD)
 sed_i() {
     local file="$1"
     local expr="$2"
@@ -82,12 +83,14 @@ sed_i() {
     fi
 }
 
+# Split arguments respecting quotes (using eval)
 split_args() {
     local input="$1"
     eval "set -- $input"
     ARGS=("$@")
 }
 
+# Check file existence (dry‑run aware)
 check_file() {
     if [[ ! -f "$1" ]]; then
         if [[ "$DRY_RUN" == true ]]; then
@@ -97,4 +100,27 @@ check_file() {
             die "File not found: $1"
         fi
     fi
+}
+
+# Idempotency helpers
+file_content_equals() {
+    local file="$1"
+    local expected="$2"
+    if [[ ! -f "$file" ]]; then
+        return 1
+    fi
+    local actual
+    actual=$(cat "$file")
+    [[ "$actual" == "$expected" ]]
+}
+
+file_ends_with() {
+    local file="$1"
+    local suffix="$2"
+    if [[ ! -f "$file" ]]; then
+        return 1
+    fi
+    local content
+    content=$(cat "$file")
+    [[ "$content" == *"$suffix" ]]
 }
