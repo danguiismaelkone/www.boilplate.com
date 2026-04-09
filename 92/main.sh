@@ -1,8 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Get the directory where this script resides
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Initialize variables
+INSTRUCTION_FILE=""
+DRY_RUN=false
+ALLOWLIST_FILE=""
+
+# Global temporary directory for all handlers
+export TEMP_DIR=""
+cleanup() {
+    if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
+        echo "🧹 Cleaned up temporary files"
+    fi
+}
+trap cleanup EXIT INT TERM
+
+# Create a unique temp directory
+TEMP_DIR=$(mktemp -d -t instruction-executor-XXXXXX)
+export TEMP_DIR
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --allowlist)
+            ALLOWLIST_FILE="$2"
+            shift 2
+            ;;
+        *)
+            if [[ -z "$INSTRUCTION_FILE" ]]; then
+                INSTRUCTION_FILE="$1"
+                shift
+            else
+                echo "Usage: $0 [--dry-run] [--allowlist <file>] <instruction_file>"
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+# After parsing, check that we have an instruction file
+if [[ -z "$INSTRUCTION_FILE" ]]; then
+    echo "Usage: $0 [--dry-run] [--allowlist <file>] <instruction_file>"
+    exit 1
+fi
 
 # Load utilities
 source "$SCRIPT_DIR/utils.sh"
@@ -14,40 +61,56 @@ source "$SCRIPT_DIR/commands/replace.sh"
 source "$SCRIPT_DIR/commands/exec.sh"
 source "$SCRIPT_DIR/commands/json.sh"
 
+export DRY_RUN
+
+# -------------------------------
+# Load allowlist (portable, works on Bash 3+)
+# -------------------------------
+if [[ -n "$ALLOWLIST_FILE" ]]; then
+    if [[ -f "$ALLOWLIST_FILE" ]]; then
+        ALLOWLIST=()
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Skip empty lines and comments
+            [[ -z "$line" || "$line" =~ ^#.*$ ]] && continue
+            ALLOWLIST+=("$line")
+        done < "$ALLOWLIST_FILE"
+        export ALLOWLIST
+        export EXEC_ALLOWLIST_ENABLED=true
+    else
+        die "Allowlist file not found: $ALLOWLIST_FILE"
+    fi
+else
+    export EXEC_ALLOWLIST_ENABLED=false
+fi
+
+# Default timeout for EXEC commands (seconds)
+export EXEC_TIMEOUT="${EXEC_TIMEOUT:-30}"
+
 # -------------------------------
 # Main execution
 # -------------------------------
-
-if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 <instruction_file>"
-    exit 1
-fi
-
-INSTRUCTION_FILE="$1"
 
 if [[ ! -f "$INSTRUCTION_FILE" ]]; then
     die "Instruction file not found: $INSTRUCTION_FILE"
 fi
 
-echo "🚀 Executing instructions from $INSTRUCTION_FILE"
+if [[ "$DRY_RUN" == true ]]; then
+    echo "🔍 DRY RUN MODE – No changes will be made"
+else
+    echo "🚀 Executing instructions from $INSTRUCTION_FILE"
+fi
 
-# State for multiline WRITE/APPEND
 CURRENT_COMMAND=""
 CURRENT_FILE=""
 BUFFER=""
 
-# Ensure required external tools are available
 require_command "jq"
 
 while IFS= read -r line || [[ -n "$line" ]]; do
-    # Trim leading/trailing whitespace
     line="${line#"${line%%[![:space:]]*}"}"
     line="${line%"${line##*[![:space:]]}"}"
-
-    # Skip empty lines and comments
     [[ -z "$line" || "$line" =~ ^#.*$ ]] && continue
 
-    # Extract command (first word) and the rest of the line
     cmd="${line%% *}"
     rest="${line#* }"
 
@@ -65,7 +128,6 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         JSONINSERT) handle_jsoninsert "$rest" ;;
         END)      handle_end ;;
         *)
-            # Capture multiline content for WRITE/APPEND
             if [[ -n "$CURRENT_COMMAND" ]]; then
                 BUFFER+="$line"$'\n'
             else
@@ -75,4 +137,8 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     esac
 done < "$INSTRUCTION_FILE"
 
-echo "✅ Done executing instructions!"
+if [[ "$DRY_RUN" == true ]]; then
+    echo "✅ Dry run completed – No actual changes were made"
+else
+    echo "✅ Done executing instructions!"
+fi

@@ -1,0 +1,6 @@
+npm init -y
+npm install *
+npm install -D *
+npm run *
+echo *
+ls *
