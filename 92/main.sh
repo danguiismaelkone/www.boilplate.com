@@ -106,8 +106,9 @@ if [[ "$LINT_MODE" == true ]]; then
             REPLACE)    lint_replace "$rest" ;;
             EXEC)       lint_exec "$rest" ;;
             JSONINSERT) lint_jsoninsert "$rest" ;;
-            SET)        ;;  # No validation needed
-            RENDER)     ;;  # No validation needed
+            SET)        ;;
+            RENDER)     ;;
+            IF|ELSE|ENDIF) ;;
             END)        lint_end ;;
             *)
                 if [[ -n "$LINT_STATE" ]]; then
@@ -146,6 +147,10 @@ source "$SCRIPT_DIR/commands/replace.sh"
 source "$SCRIPT_DIR/commands/exec.sh"
 source "$SCRIPT_DIR/commands/json.sh"
 source "$SCRIPT_DIR/commands/variables.sh"
+source "$SCRIPT_DIR/commands/conditionals.sh"
+
+# Initialise conditional stack
+init_conditionals
 
 # Load allowlist if provided
 if [[ -n "$ALLOWLIST_FILE" ]]; then
@@ -198,8 +203,8 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
     # Substitute variables in arguments (except for commands that should not be substituted)
     case "$cmd" in
-        SET|END|RENDER)
-            # No substitution for these – SET needs raw assignment, END none, RENDER handles internally
+        SET|END|RENDER|IF|ELSE|ENDIF)
+            # No substitution for these
             ;;
         *)
             if [[ -n "$rest" ]]; then
@@ -207,6 +212,19 @@ while IFS= read -r line || [[ -n "$line" ]]; do
             fi
             ;;
     esac
+
+    # Conditional skipping (except for IF/ELSE/ENDIF which must be processed)
+    if [[ $SKIP_LEVEL -gt 0 ]]; then
+        case "$cmd" in
+            IF|ELSE|ENDIF)
+                # These commands are always processed to manage the skip state
+                ;;
+            *)
+                log_debug "Skipping command due to false condition: $cmd"
+                continue
+                ;;
+        esac
+    fi
 
     # Execute command
     case "$cmd" in
@@ -223,6 +241,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         JSONINSERT) handle_jsoninsert "$rest" ;;
         SET)        handle_set "$rest" ;;
         RENDER)     handle_render "$rest" ;;
+        IF)         handle_if "$rest" ;;
+        ELSE)       handle_else ;;
+        ENDIF)      handle_endif ;;
         END)        handle_end ;;
         *)
             if [[ -n "$CURRENT_COMMAND" ]]; then

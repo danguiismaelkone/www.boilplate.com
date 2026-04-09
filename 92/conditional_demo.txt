@@ -1,0 +1,23 @@
+# Set environment
+SET ENV=production
+
+# Conditional directory creation
+IF EQUALS ENV production
+    MKDIR prod_data
+ELSE
+    MKDIR dev_data
+ENDIF
+
+# Check if config exists
+IF NOT EXISTS config.json
+    WRITE config.json
+    {"env": "$ENV"}
+    END
+ENDIF
+
+# Run different commands based on file presence
+IF EXISTS .env
+    EXEC echo ".env found"
+ELSE
+    EXEC echo "No .env file"
+ENDIF
