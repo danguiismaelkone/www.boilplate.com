@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
-# Logging configuration (set by main.sh)
+# ================================
+# Logging configuration
+# ================================
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
 LOG_FILE="${LOG_FILE:-}"
 LOG_JSON="${LOG_JSON:-false}"
 
-# Portable log level comparison (no associative array)
 get_level_num() {
     case "$1" in
         ERROR) echo 1 ;;
@@ -30,7 +31,6 @@ log_message() {
     local formatted="[$timestamp] [$level] $msg"
 
     if [[ "$LOG_JSON" == "true" ]]; then
-        # Simple JSON escaping
         local json_msg=$(printf '%s' "$msg" | sed 's/"/\\"/g')
         formatted="{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$json_msg\"}"
     fi
@@ -83,11 +83,45 @@ sed_i() {
     fi
 }
 
-# Split arguments respecting quotes (using eval)
+# Safe argument splitter – no eval, respects single/double quotes
 split_args() {
     local input="$1"
-    eval "set -- $input"
-    ARGS=("$@")
+    ARGS=()
+    local current=""
+    local in_quote=false
+    local quote_char=""
+    local i=0
+    local len=${#input}
+    while [[ $i -lt $len ]]; do
+        char="${input:$i:1}"
+        if [[ "$in_quote" == false ]]; then
+            if [[ "$char" == "'" || "$char" == '"' ]]; then
+                in_quote=true
+                quote_char="$char"
+                ((i++))
+                continue
+            elif [[ "$char" == " " || "$char" == $'\t' ]]; then
+                if [[ -n "$current" ]]; then
+                    ARGS+=("$current")
+                    current=""
+                fi
+                ((i++))
+                continue
+            fi
+        else
+            if [[ "$char" == "$quote_char" ]]; then
+                in_quote=false
+                quote_char=""
+                ((i++))
+                continue
+            fi
+        fi
+        current+="$char"
+        ((i++))
+    done
+    if [[ -n "$current" ]]; then
+        ARGS+=("$current")
+    fi
 }
 
 # Check file existence (dry‑run aware)
@@ -102,7 +136,9 @@ check_file() {
     fi
 }
 
+# ================================
 # Idempotency helpers
+# ================================
 file_content_equals() {
     local file="$1"
     local expected="$2"
@@ -123,4 +159,51 @@ file_ends_with() {
     local content
     content=$(cat "$file")
     [[ "$content" == *"$suffix" ]]
+}
+
+# ================================
+# Variable handling (for SET and substitution)
+# ================================
+declare -a VAR_NAMES=()
+declare -a VAR_VALUES=()
+
+set_var() {
+    local name="$1"
+    local value="$2"
+    for i in "${!VAR_NAMES[@]}"; do
+        if [[ "${VAR_NAMES[$i]}" == "$name" ]]; then
+            VAR_VALUES[$i]="$value"
+            return 0
+        fi
+    done
+    VAR_NAMES+=("$name")
+    VAR_VALUES+=("$value")
+}
+
+get_var() {
+    local name="$1"
+    for i in "${!VAR_NAMES[@]}"; do
+        if [[ "${VAR_NAMES[$i]}" == "$name" ]]; then
+            echo "${VAR_VALUES[$i]}"
+            return 0
+        fi
+    done
+    echo ""
+}
+
+# Substitute $VAR and ${VAR} in a string
+subst_vars() {
+    local input="$1"
+    local result="$input"
+    for i in "${!VAR_NAMES[@]}"; do
+        local name="${VAR_NAMES[$i]}"
+        local value="${VAR_VALUES[$i]}"
+        # Escape special characters for sed
+        local escaped_value=$(printf '%s\n' "$value" | sed 's/[\/&]/\\&/g')
+        # Replace ${VAR}
+        result=$(echo "$result" | sed "s/\${$name}/$escaped_value/g")
+        # Replace $VAR (as a word, not part of a longer word)
+        result=$(echo "$result" | sed "s/\\\$$name\b/$escaped_value/g")
+    done
+    echo "$result"
 }

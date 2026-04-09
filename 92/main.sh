@@ -3,18 +3,28 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# -------------------------------
+# Initialise variables
+# -------------------------------
 INSTRUCTION_FILE=""
 DRY_RUN=false
+LINT_MODE=false
 ALLOWLIST_FILE=""
 LOG_LEVEL="INFO"
 LOG_FILE=""
 LOG_JSON=false
 
+# -------------------------------
 # Parse arguments
+# -------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run)
             DRY_RUN=true
+            shift
+            ;;
+        --lint)
+            LINT_MODE=true
             shift
             ;;
         --allowlist)
@@ -38,7 +48,7 @@ while [[ $# -gt 0 ]]; do
                 INSTRUCTION_FILE="$1"
                 shift
             else
-                echo "Usage: $0 [options] <instruction_file>"
+                echo "Usage: $0 [--dry-run] [--lint] [--allowlist <file>] [--log-level <LEVEL>] [--log-file <file>] [--log-json] <instruction_file>"
                 exit 1
             fi
             ;;
@@ -46,18 +56,77 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$INSTRUCTION_FILE" ]]; then
-    echo "Usage: $0 [--dry-run] [--allowlist <file>] [--log-level <LEVEL>] [--log-file <file>] [--log-json] <instruction_file>"
+    echo "Usage: $0 [--dry-run] [--lint] [--allowlist <file>] [--log-level <LEVEL>] [--log-file <file>] [--log-json] <instruction_file>"
     exit 1
 fi
 
-# Load utilities (defines log functions)
+# -------------------------------
+# Load utilities (logging, helpers)
+# -------------------------------
 source "$SCRIPT_DIR/utils.sh"
-
-# Export logging configuration
 export LOG_LEVEL LOG_FILE LOG_JSON
 export DRY_RUN
 
-# Temporary directory and trap (log_debug now available)
+# -------------------------------
+# Lint mode – only validate syntax
+# -------------------------------
+if [[ "$LINT_MODE" == true ]]; then
+    source "$SCRIPT_DIR/commands/linter.sh"
+    LINT_LINE_NUM=0
+    LINT_STATE=""
+    LINT_CURRENT_FILE=""
+    echo "🔍 Lint mode – validating instruction file: $INSTRUCTION_FILE"
+
+    if [[ ! -f "$INSTRUCTION_FILE" ]]; then
+        die "Instruction file not found: $INSTRUCTION_FILE"
+    fi
+
+    LINE_NUM=0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        LINE_NUM=$((LINE_NUM + 1))
+        LINT_LINE_NUM=$LINE_NUM
+
+        # Trim
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z "$line" || "$line" =~ ^#.*$ ]] && continue
+
+        cmd="${line%% *}"
+        rest="${line#* }"
+
+        case "$cmd" in
+            MKDIR)      lint_mkdir "$rest" ;;
+            CREATE)     lint_create "$rest" ;;
+            DELETE)     lint_delete "$rest" ;;
+            RMDIR)      lint_rmdir "$rest" ;;
+            COPY)       lint_copy "$rest" ;;
+            MOVE)       lint_move "$rest" ;;
+            WRITE)      lint_write_start "$rest" ;;
+            APPEND)     lint_append_start "$rest" ;;
+            REPLACE)    lint_replace "$rest" ;;
+            EXEC)       lint_exec "$rest" ;;
+            JSONINSERT) lint_jsoninsert "$rest" ;;
+            SET)        ;;  # No validation needed
+            RENDER)     ;;  # No validation needed
+            END)        lint_end ;;
+            *)
+                if [[ -n "$LINT_STATE" ]]; then
+                    # Inside WRITE/APPEND block – content is valid
+                    :
+                else
+                    lint_error "Unknown command: $cmd"
+                fi
+                ;;
+        esac
+    done < "$INSTRUCTION_FILE"
+
+    lint_final_check
+    exit $?
+fi
+
+# -------------------------------
+# Execution mode setup
+# -------------------------------
 export TEMP_DIR=""
 cleanup() {
     if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
@@ -76,8 +145,9 @@ source "$SCRIPT_DIR/commands/content.sh"
 source "$SCRIPT_DIR/commands/replace.sh"
 source "$SCRIPT_DIR/commands/exec.sh"
 source "$SCRIPT_DIR/commands/json.sh"
+source "$SCRIPT_DIR/commands/variables.sh"
 
-# Load allowlist
+# Load allowlist if provided
 if [[ -n "$ALLOWLIST_FILE" ]]; then
     if [[ -f "$ALLOWLIST_FILE" ]]; then
         ALLOWLIST=()
@@ -96,7 +166,7 @@ fi
 
 export EXEC_TIMEOUT="${EXEC_TIMEOUT:-30}"
 
-# Main execution
+# Validate instruction file exists
 if [[ ! -f "$INSTRUCTION_FILE" ]]; then
     die "Instruction file not found: $INSTRUCTION_FILE"
 fi
@@ -107,33 +177,53 @@ else
     log_info "Executing instructions from $INSTRUCTION_FILE"
 fi
 
+require_command "jq"
+
+# -------------------------------
+# Main execution loop
+# -------------------------------
 CURRENT_COMMAND=""
 CURRENT_FILE=""
 BUFFER=""
 
-require_command "jq"
-
 while IFS= read -r line || [[ -n "$line" ]]; do
+    # Trim
     line="${line#"${line%%[![:space:]]*}"}"
     line="${line%"${line##*[![:space:]]}"}"
     [[ -z "$line" || "$line" =~ ^#.*$ ]] && continue
 
+    # Extract command and arguments
     cmd="${line%% *}"
     rest="${line#* }"
 
+    # Substitute variables in arguments (except for commands that should not be substituted)
     case "$cmd" in
-        MKDIR)    handle_mkdir "$rest" ;;
-        CREATE)   handle_create "$rest" ;;
-        DELETE)   handle_delete "$rest" ;;
-        RMDIR)    handle_rmdir "$rest" ;;
-        COPY)     handle_copy "$rest" ;;
-        MOVE)     handle_move "$rest" ;;
-        WRITE)    handle_write_start "$rest" ;;
-        APPEND)   handle_append_start "$rest" ;;
-        REPLACE)  handle_replace "$rest" ;;
-        EXEC)     handle_exec "$rest" ;;
+        SET|END|RENDER)
+            # No substitution for these – SET needs raw assignment, END none, RENDER handles internally
+            ;;
+        *)
+            if [[ -n "$rest" ]]; then
+                rest=$(subst_vars "$rest")
+            fi
+            ;;
+    esac
+
+    # Execute command
+    case "$cmd" in
+        MKDIR)      handle_mkdir "$rest" ;;
+        CREATE)     handle_create "$rest" ;;
+        DELETE)     handle_delete "$rest" ;;
+        RMDIR)      handle_rmdir "$rest" ;;
+        COPY)       handle_copy "$rest" ;;
+        MOVE)       handle_move "$rest" ;;
+        WRITE)      handle_write_start "$rest" ;;
+        APPEND)     handle_append_start "$rest" ;;
+        REPLACE)    handle_replace "$rest" ;;
+        EXEC)       handle_exec "$rest" ;;
         JSONINSERT) handle_jsoninsert "$rest" ;;
-        END)      handle_end ;;
+        SET)        handle_set "$rest" ;;
+        RENDER)     handle_render "$rest" ;;
+        END)        handle_end ;;
         *)
             if [[ -n "$CURRENT_COMMAND" ]]; then
                 BUFFER+="$line"$'\n'
@@ -144,6 +234,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     esac
 done < "$INSTRUCTION_FILE"
 
+# -------------------------------
+# Finalise
+# -------------------------------
 if [[ "$DRY_RUN" == true ]]; then
     log_info "Dry run completed – No actual changes were made"
 else

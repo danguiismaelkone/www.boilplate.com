@@ -1,4 +1,19 @@
 # =========================
+# VARS
+# =========================
+SET PROJECT_NAME=myapp
+SET PORT=3000
+
+MKDIR $PROJECT_NAME
+CREATE $PROJECT_NAME/.env
+
+WRITE $PROJECT_NAME/.env
+PORT=${PORT}
+END
+
+RENDER templates/config.tmpl $PROJECT_NAME/config.json
+
+# =========================
 # FOLDERS
 # =========================
 MKDIR src
