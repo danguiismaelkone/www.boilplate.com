@@ -1,0 +1,250 @@
+# =========================
+# FOLDERS
+# =========================
+MKDIR src
+MKDIR src/controllers
+MKDIR src/services
+MKDIR src/models
+MKDIR src/routes
+MKDIR src/middlewares
+MKDIR src/utils
+MKDIR src/config
+
+# =========================
+# FILES
+# =========================
+CREATE src/app.ts
+CREATE src/server.ts
+CREATE src/controllers/auth.controller.ts
+CREATE src/services/auth.service.ts
+CREATE src/models/user.model.ts
+CREATE src/routes/auth.routes.ts
+CREATE src/middlewares/auth.middleware.ts
+CREATE src/utils/hash.ts
+CREATE src/config/env.ts
+
+# =========================
+# APP
+# =========================
+WRITE src/app.ts
+import express from 'express';
+import authRoutes from './routes/auth.routes';
+
+const app = express();
+
+app.use(express.json());
+
+app.use('/api/auth', authRoutes);
+
+app.get('/', (_, res) => {
+  res.send('API running 🚀');
+});
+
+export default app;
+END
+
+# =========================
+# SERVER
+# =========================
+WRITE src/server.ts
+import app from './app';
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
+END
+
+# =========================
+# USER MODEL
+# =========================
+WRITE src/models/user.model.ts
+export interface User {
+  id: string;
+  email: string;
+  password: string;
+}
+
+export const users: User[] = [];
+END
+
+# =========================
+# HASH UTILS
+# =========================
+WRITE src/utils/hash.ts
+import bcrypt from 'bcrypt';
+
+export const hashPassword = async (password: string) => {
+  return bcrypt.hash(password, 10);
+};
+
+export const comparePassword = async (password: string, hash: string) => {
+  return bcrypt.compare(password, hash);
+};
+END
+
+# =========================
+# AUTH SERVICE
+# =========================
+WRITE src/services/auth.service.ts
+import { users, User } from '../models/user.model';
+import { hashPassword, comparePassword } from '../utils/hash';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+
+const JWT_SECRET = 'secret';
+
+export const register = async (email: string, password: string) => {
+  const existing = users.find(u => u.email === email);
+  if (existing) throw new Error('User already exists');
+
+  const hashed = await hashPassword(password);
+
+  const user: User = {
+    id: uuidv4(),
+    email,
+    password: hashed,
+  };
+
+  users.push(user);
+
+  return { id: user.id, email: user.email };
+};
+
+export const login = async (email: string, password: string) => {
+  const user = users.find(u => u.email === email);
+  if (!user) throw new Error('Invalid credentials');
+
+  const isValid = await comparePassword(password, user.password);
+  if (!isValid) throw new Error('Invalid credentials');
+
+  const token = jwt.sign(
+    { id: user.id, email: user.email },
+    JWT_SECRET,
+    { expiresIn: '1d' }
+  );
+
+  return { token };
+};
+END
+
+# =========================
+# AUTH CONTROLLER
+# =========================
+WRITE src/controllers/auth.controller.ts
+import { Request, Response } from 'express';
+import * as AuthService from '../services/auth.service';
+
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    const user = await AuthService.register(email, password);
+    res.json(user);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    const data = await AuthService.login(email, password);
+    res.json(data);
+  } catch (err: any) {
+    res.status(401).json({ message: err.message });
+  }
+};
+END
+
+# =========================
+# AUTH MIDDLEWARE
+# =========================
+WRITE src/middlewares/auth.middleware.ts
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = 'secret';
+
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const header = req.headers.authorization;
+
+  if (!header) {
+    return res.status(401).json({ message: 'No token' });
+  }
+
+  const token = header.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    (req as any).user = decoded;
+    next();
+  } catch {
+    res.status(401).json({ message: 'Invalid token' });
+  }
+};
+END
+
+# =========================
+# ROUTES
+# =========================
+WRITE src/routes/auth.routes.ts
+import { Router } from 'express';
+import * as AuthController from '../controllers/auth.controller';
+import { authMiddleware } from '../middlewares/auth.middleware';
+
+const router = Router();
+
+router.post('/register', AuthController.register);
+router.post('/login', AuthController.login);
+
+router.get('/me', authMiddleware, (req, res) => {
+  res.json({ user: (req as any).user });
+});
+
+export default router;
+END
+
+# =========================
+# ENV (OPTIONAL)
+# =========================
+WRITE .env
+PORT=5000
+JWT_SECRET='secret'
+END
+
+# =========================
+# ENV DEV
+# =========================
+WRITE .env.example
+PORT=5000
+JWT_SECRET='secret'
+END
+
+WRITE tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "./"
+  }
+}
+END
+
+
+
+# Run shell command
+EXEC npm init -y
+EXEC npm install express bcrypt jsonwebtoken uuid
+EXEC npm install -D typescript ts-node-dev @types/node @types/express @types/bcrypt @types/jsonwebtoken @types/uuid
+
+# Insert npm scripts
+JSONINSERT package.json dev "ts-node-dev --respawn --transpile-only src/server.ts"
+JSONINSERT package.json build "tsc"
+JSONINSERT package.json start "node dist/server.js"

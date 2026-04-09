@@ -1,0 +1,30 @@
+# Create folders
+MKDIR src/controllers
+MKDIR src/services
+
+# Create files
+CREATE src/app.ts
+CREATE src/server.ts
+
+# Write content
+WRITE src/app.ts
+import express from 'express';
+const app = express();
+export default app;
+END
+
+# Append content
+APPEND src/app.ts
+app.get('/', (_, res) => res.send('Hello'));
+END
+
+# Update (replace text)
+REPLACE src/app.ts express fastify
+
+# Delete file
+DELETE src/old.ts
+
+# Delete folder
+RMDIR src/oldFolder
+
+
