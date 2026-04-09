@@ -1,0 +1,27 @@
+[2026-04-09 03:42:11] [WARN] timeout command not found - running EXEC commands without timeout protection
+[2026-04-09 03:42:11] [INFO] DRY RUN MODE – No changes will be made
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src/controllers
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src/services
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src/models
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src/routes
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src/middlewares
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src/utils
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src/config
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src && touch src/app.ts
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src && touch src/server.ts
+[2026-04-09 03:42:11] [DEBUG] [DRY RUN] mkdir -p src/controllers && touch src/controllers/auth.controller.ts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] mkdir -p src/services && touch src/services/auth.service.ts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] mkdir -p src/models && touch src/models/user.model.ts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] mkdir -p src/routes && touch src/routes/auth.routes.ts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] mkdir -p src/middlewares && touch src/middlewares/auth.middleware.ts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] mkdir -p src/utils && touch src/utils/hash.ts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] mkdir -p src/config && touch src/config/env.ts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] EXEC: npm init -y (timeout 60s)
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] EXEC: npm install express bcrypt jsonwebtoken uuid (timeout 60s)
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] EXEC: npm install -D typescript ts-node-dev @types/node @types/express @types/bcrypt @types/jsonwebtoken @types/uuid (timeout 60s)
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] JSONINSERT package.json dev "ts-node-dev --respawn --transpile-only src/server.ts" at .scripts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] JSONINSERT package.json build "tsc" at .scripts
+[2026-04-09 03:42:12] [DEBUG] [DRY RUN] JSONINSERT package.json start "node dist/server.js" at .scripts
+[2026-04-09 03:42:12] [INFO] Dry run completed – No actual changes were made
+[2026-04-09 03:42:12] [DEBUG] Cleaned up temporary files

@@ -1,0 +1,20 @@
+[2026-04-09 03:41:49] [WARN] timeout command not found - running EXEC commands without timeout protection
+[2026-04-09 03:41:49] [INFO] Executing instructions from instructions.txt
+[2026-04-09 03:41:49] [INFO] 📁 Created directory: src
+[2026-04-09 03:41:49] [INFO] 📁 Created directory: src/controllers
+[2026-04-09 03:41:49] [INFO] 📁 Created directory: src/services
+[2026-04-09 03:41:49] [INFO] 📁 Created directory: src/models
+[2026-04-09 03:41:49] [INFO] 📁 Created directory: src/routes
+[2026-04-09 03:41:49] [INFO] 📁 Created directory: src/middlewares
+[2026-04-09 03:41:49] [INFO] 📁 Created directory: src/utils
+[2026-04-09 03:41:49] [INFO] 📁 Created directory: src/config
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/app.ts
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/server.ts
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/controllers/auth.controller.ts
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/services/auth.service.ts
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/models/user.model.ts
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/routes/auth.routes.ts
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/middlewares/auth.middleware.ts
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/utils/hash.ts
+[2026-04-09 03:41:49] [INFO] 📄 Created file: src/config/env.ts
+[2026-04-09 03:41:50] [INFO] Done executing instructions!

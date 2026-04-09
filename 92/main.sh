@@ -3,24 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Initialize variables
 INSTRUCTION_FILE=""
 DRY_RUN=false
 ALLOWLIST_FILE=""
-
-# Global temporary directory for all handlers
-export TEMP_DIR=""
-cleanup() {
-    if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
-        rm -rf "$TEMP_DIR"
-        echo "🧹 Cleaned up temporary files"
-    fi
-}
-trap cleanup EXIT INT TERM
-
-# Create a unique temp directory
-TEMP_DIR=$(mktemp -d -t instruction-executor-XXXXXX)
-export TEMP_DIR
+LOG_LEVEL="INFO"
+LOG_FILE=""
+LOG_JSON=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -33,26 +21,54 @@ while [[ $# -gt 0 ]]; do
             ALLOWLIST_FILE="$2"
             shift 2
             ;;
+        --log-level)
+            LOG_LEVEL="$2"
+            shift 2
+            ;;
+        --log-file)
+            LOG_FILE="$2"
+            shift 2
+            ;;
+        --log-json)
+            LOG_JSON=true
+            shift
+            ;;
         *)
             if [[ -z "$INSTRUCTION_FILE" ]]; then
                 INSTRUCTION_FILE="$1"
                 shift
             else
-                echo "Usage: $0 [--dry-run] [--allowlist <file>] <instruction_file>"
+                echo "Usage: $0 [options] <instruction_file>"
                 exit 1
             fi
             ;;
     esac
 done
 
-# After parsing, check that we have an instruction file
 if [[ -z "$INSTRUCTION_FILE" ]]; then
-    echo "Usage: $0 [--dry-run] [--allowlist <file>] <instruction_file>"
+    echo "Usage: $0 [--dry-run] [--allowlist <file>] [--log-level <LEVEL>] [--log-file <file>] [--log-json] <instruction_file>"
     exit 1
 fi
 
-# Load utilities
+# Load utilities (defines log functions)
 source "$SCRIPT_DIR/utils.sh"
+
+# Export logging configuration
+export LOG_LEVEL LOG_FILE LOG_JSON
+export DRY_RUN
+
+# Temporary directory and trap (log_debug now available)
+export TEMP_DIR=""
+cleanup() {
+    if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
+        log_debug "Cleaned up temporary files"
+    fi
+}
+trap cleanup EXIT INT TERM
+
+TEMP_DIR=$(mktemp -d -t instruction-executor-XXXXXX)
+export TEMP_DIR
 
 # Load command handlers
 source "$SCRIPT_DIR/commands/filesystem.sh"
@@ -61,16 +77,11 @@ source "$SCRIPT_DIR/commands/replace.sh"
 source "$SCRIPT_DIR/commands/exec.sh"
 source "$SCRIPT_DIR/commands/json.sh"
 
-export DRY_RUN
-
-# -------------------------------
-# Load allowlist (portable, works on Bash 3+)
-# -------------------------------
+# Load allowlist
 if [[ -n "$ALLOWLIST_FILE" ]]; then
     if [[ -f "$ALLOWLIST_FILE" ]]; then
         ALLOWLIST=()
         while IFS= read -r line || [[ -n "$line" ]]; do
-            # Skip empty lines and comments
             [[ -z "$line" || "$line" =~ ^#.*$ ]] && continue
             ALLOWLIST+=("$line")
         done < "$ALLOWLIST_FILE"
@@ -83,21 +94,17 @@ else
     export EXEC_ALLOWLIST_ENABLED=false
 fi
 
-# Default timeout for EXEC commands (seconds)
 export EXEC_TIMEOUT="${EXEC_TIMEOUT:-30}"
 
-# -------------------------------
 # Main execution
-# -------------------------------
-
 if [[ ! -f "$INSTRUCTION_FILE" ]]; then
     die "Instruction file not found: $INSTRUCTION_FILE"
 fi
 
 if [[ "$DRY_RUN" == true ]]; then
-    echo "🔍 DRY RUN MODE – No changes will be made"
+    log_info "DRY RUN MODE – No changes will be made"
 else
-    echo "🚀 Executing instructions from $INSTRUCTION_FILE"
+    log_info "Executing instructions from $INSTRUCTION_FILE"
 fi
 
 CURRENT_COMMAND=""
@@ -131,14 +138,14 @@ while IFS= read -r line || [[ -n "$line" ]]; do
             if [[ -n "$CURRENT_COMMAND" ]]; then
                 BUFFER+="$line"$'\n'
             else
-                warn "Unknown command: $cmd (ignored)"
+                log_warn "Unknown command: $cmd (ignored)"
             fi
             ;;
     esac
 done < "$INSTRUCTION_FILE"
 
 if [[ "$DRY_RUN" == true ]]; then
-    echo "✅ Dry run completed – No actual changes were made"
+    log_info "Dry run completed – No actual changes were made"
 else
-    echo "✅ Done executing instructions!"
+    log_info "Done executing instructions!"
 fi

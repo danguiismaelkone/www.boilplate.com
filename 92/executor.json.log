@@ -1,0 +1,20 @@
+{"timestamp":"2026-04-09 03:41:59","level":"WARN","message":"timeout command not found - running EXEC commands without timeout protection"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"Executing instructions from instructions.txt"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📁 Created directory: src"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📁 Created directory: src/controllers"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📁 Created directory: src/services"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📁 Created directory: src/models"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📁 Created directory: src/routes"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📁 Created directory: src/middlewares"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📁 Created directory: src/utils"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📁 Created directory: src/config"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/app.ts"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/server.ts"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/controllers/auth.controller.ts"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/services/auth.service.ts"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/models/user.model.ts"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/routes/auth.routes.ts"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/middlewares/auth.middleware.ts"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/utils/hash.ts"}
+{"timestamp":"2026-04-09 03:41:59","level":"INFO","message":"📄 Created file: src/config/env.ts"}
+{"timestamp":"2026-04-09 03:42:01","level":"INFO","message":"Done executing instructions!"}
